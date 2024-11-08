@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Fetch and Render</title>
+  <style>
+    body {
+        background: #F6F6F6;
+        font-family: Arial, sans-serif;
+    }
+    .container {
+        display: flex;
+        width: 80%;
+        margin: 20px auto;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        flex-direction: row-reverse;
+    }
+    .left-panel, .right-panel {
+      width: 50%;
+      padding: 15px;
+    }
+    .form-section, .json-section, .render-options, .status-message {
+      margin-bottom: 15px;
+    }
+    .api-input, .json-input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .json-input {
+      height: 200px;
+    }
+    button {
+      padding: 8px 12px;
+      border: none;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .rendered-content {
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      min-height: 300px;
+      background-color: #f9f9f9;
+      word-wrap: break-word;
+    }
+    .rendered-content ul div {
+      margin-bottom: 10px;
+    }
+    .status-message {
+      color: red;
+    }
+    .form-group{
+      display: flex;
+      align-items: center;
+    }
+    .form-group button{
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  
+<div class="container">
+  <!-- Left Panel for JSON Input and Options -->
+  <div class="left-panel">
+    <div class="form-section">
+      <label for="apiEndpoint">API Endpoint:</label>
+     <div class="form-group">
+        <input type="text" id="apiEndpoint" placeholder="Enter API endpoint" class="api-input" />
+        <button onclick="fetchData()">GET</button>
+     </div>
+    </div>
+  
+    <div class="json-section">
+      <label for="jsonData">JSON Data:</label>
+      <textarea id="jsonData" placeholder="Edit or input JSON data here" class="json-input"></textarea>
+    </div>
+  
+    <div class="render-options">
+      <label><input type="radio" name="renderFormat" value="HTML" checked> HTML</label>
+      <label><input type="radio" name="renderFormat" value="Markdown"> Markdown</label>
+    </div>
+  
+    <div class="status-message" id="statusMessage"></div>
+  </div>
+
+  <!-- Right Panel for Rendered Content -->
+  <div class="right-panel">
+    <div class="rendered-content" id="renderedContent">Rendered content will appear here...</div>
+  </div>
+</div>
+
+<script>
+  // Fetch JSON Data from API
+  async function fetchData() {
+    const apiEndpoint = document.getElementById('apiEndpoint').value;
+    const statusMessage = document.getElementById('statusMessage');
+    const jsonDataInput = document.getElementById('jsonData');
+
+    try {
+      const response = await fetch(apiEndpoint);
+      if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+      
+      const data = await response.json();
+      jsonDataInput.value = JSON.stringify(data, null, 2); 
+      statusMessage.innerText = 'Data fetched successfully!';
+      updateRenderedContent();
+    } catch (error) {
+      statusMessage.innerText = `Error fetching data: ${error.message}`;
+    }
+  }
+
+  // Watch for changes in JSON or Render Format
+  document.getElementById('jsonData').addEventListener('input', updateRenderedContent);
+  document.getElementsByName('renderFormat').forEach(radio => 
+    radio.addEventListener('change', updateRenderedContent)
+  );
+
+  // Update Rendered Content
+  function updateRenderedContent() {
+    const jsonDataInput = document.getElementById('jsonData').value;
+    const renderFormat = document.querySelector('input[name="renderFormat"]:checked').value;
+    const renderedContent = document.getElementById('renderedContent');
+    const statusMessage = document.getElementById('statusMessage');
+
+    try {
+      const data = JSON.parse(jsonDataInput);
+      statusMessage.innerText = '';
+
+      if (renderFormat === 'HTML') {
+        renderedContent.innerHTML = convertToHTML(data);
+      } else if (renderFormat === 'Markdown') {
+        renderedContent.innerHTML = `<p>${convertToMarkdown(data)}</p>`;
+      }
+    } catch (error) {
+      statusMessage.innerText = 'Invalid JSON format. Please correct it and try again.';
+    }
+  }
+
+  // Convert JSON to HTML
+  function convertToHTML(data) {
+    if (typeof data === 'object' && !Array.isArray(data)) {
+      return Object.entries(data).map(([key, value]) =>
+        `<div><strong>${key}:</strong> ${convertToHTML(value)}</div>`
+      ).join('');
+    } else if (Array.isArray(data)) {
+      return `<ul>${data.map(item => `<li>${convertToHTML(item)}</li>`).join('')}</ul>`;
+    } else {
+      return data;
+    }
+  }
+
+  // Convert JSON to Markdown
+  function convertToMarkdown(data, indent = 0) {
+    const indentation = ' '.repeat(indent);
+    if (typeof data === 'object' && !Array.isArray(data)) {
+      return Object.entries(data).map(([key, value]) =>
+        `${indentation}**${key}:** ${convertToMarkdown(value, indent + 2)}`
+      ).join('\n');
+    } else if (Array.isArray(data)) {
+      return data.map(item => `${indentation}- ${convertToMarkdown(item, indent + 2)}`).join('\n');
+    } else {
+      return data;
+    }
+  }
+</script>
+</body>
+</html>
